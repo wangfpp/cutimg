@@ -2,7 +2,7 @@
 # @Author: wangfpp
 # @Date:   2018-02-05 20:20:48
 # @Last Modified by:   wangfpp
-# @Last Modified time: 2018-02-08 12:23:37
+# @Last Modified time: 2018-02-09 11:37:23
 import cv2
 import json
 import numpy as np
@@ -15,7 +15,7 @@ rcnn = sys.argv[2]
 path = sys.argv[3]
 
 #行为框的绘制开关
-draw_rect = True
+draw_rect = False
  
 class save_bigHead_img(object):
 	"""docstring for save_bighead_img"""
@@ -50,6 +50,7 @@ class save_bigHead_img(object):
 			if draw_rect:
 				for rect in rcnn:
 					self.draw_rect_on_img(img,rect['box'],(255,0,0),2)
+					#Python的三元表达式   is_true if condicotion else is_false
 					who = rect['face_descr']['name'] if 'face_descr' in rect.keys() else   ''
 					behavior = rect['title']
 					expression = rect['expression'] if 'expression' in rect.keys() else ''
@@ -67,7 +68,7 @@ class save_bigHead_img(object):
 						self.writeText(img,who,w_pt,cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,255),2)
 					else:
 						pass
-					#-----------------------表情---------------------------------#
+					#-----------------------表情框---------------------------------#
 					if expression != '':
 						if who != '':
 							e_pt_x = rect['face_descr']['face_pos'][0]
@@ -98,7 +99,7 @@ class save_bigHead_img(object):
 			self.is_have_floder(name)#判断是否有当前名字的路径  有就pass无就新建
 			self.save_img(path_name,originimg[y1:y2,x1:x2])#保存图片到相应路径
 		
-	def is_have_floder(self,name):#是都存在文件夹的判断
+	def is_have_floder(self,name):#是否存在文件夹的判断
 		path = self.params['path']
 		folder_list = os.listdir(path)
 		if name in folder_list:
@@ -111,22 +112,14 @@ class save_bigHead_img(object):
 		if not img:
 			print '路径不存在'
 		
-	def draw_rect_on_img(self,img,points,color,line):
+	def draw_rect_on_img(self,img,points,color,line):#在图片上绘制矩形
 		pt1 = (points[0],points[1])
 		pt2 = (points[2],points[3])
 		cv2.rectangle(img,pt1,pt2,color,line)
 
-	def add_value(self,value):
-		pass
-
-	def writeText(self,img,txt,points,font,line,color,linebold):#who behavior expression
-		#pt = (points[0],points[1] - 5)
-		# name_len = ((len(who) * 12) + points[0],points[1] - 5)
-		# expression_len = (len(who) + len(expression) + points[0], points[1] - 5)
-		# print pt,name_len,expression_len
+	#在img上写字
+	def writeText(self,img,txt,points,font,line,color,linebold):#img 图片 txt文字 points=(x,y) font字体 line线型 color演示 linebold粗细
 		cv2.putText(img,txt,points,font,line,color,linebold,False)#人名
-		# cv2.putText(img,behavior,name_len,cv2.FONT_HERSHEY_SIMPLEX,1.5,(255,0,0),2,False)#行为
-		# cv2.putText(img,expression,expression_len,cv2.FONT_HERSHEY_SIMPLEX,1.5,(0,255,0),2,False)#表情
 
 if __name__ == '__main__':
 	a = save_bigHead_img({"img" : img, "json" : rcnn,"path" : path})
