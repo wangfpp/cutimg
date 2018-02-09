@@ -2,7 +2,7 @@
 # @Author: wangfpp
 # @Date:   2018-02-05 20:20:48
 # @Last Modified by:   wangfpp
-# @Last Modified time: 2018-02-06 15:45:02
+# @Last Modified time: 2018-02-08 12:23:37
 import cv2
 import json
 import numpy as np
@@ -14,6 +14,8 @@ img = sys.argv[1]
 rcnn = sys.argv[2]
 path = sys.argv[3]
 
+#行为框的绘制开关
+draw_rect = True
  
 class save_bigHead_img(object):
 	"""docstring for save_bighead_img"""
@@ -25,16 +27,61 @@ class save_bigHead_img(object):
 		with open(self.params['json'], 'r') as f:
 			results = json.load(f)#解析json格式的数据并提取其中的rcnn信息
 			rcnn = results['rcnn']
-			self.face_map = []
-			for person in rcnn:#循环把人脸框 插入数组
-				if 'face_descr' in person.keys():
-					self.face_map.append(person['face_descr'])
-				else:
-					pass
-			if len(self.face_map) > 0:#无人脸框就无需调用save_img函数
-				self.read_img()
+			faces = results['faces']
+			img_path = self.params['img']
+			img_name = os.path.basename(img_path)
+			originimg = cv2.imread(img_path)
+			img = originimg.copy()
+			if len(faces) <= 0:
+				print '无人脸框'#全图没找到人脸
 			else:
-				print '无人脸框'
+				for face in faces:
+					self.draw_rect_on_img(img,face,(0,255,255),2)
+				self.face_map = []
+				for person in rcnn:#循环把人脸框 插入数组
+					if 'face_descr' in person.keys():
+						self.face_map.append(person['face_descr'])
+					else:
+						pass
+				if len(self.face_map) > 0:#无人脸框就无需调用save_img函数
+					self.read_img()
+				else:
+					print '无人脸匹配框'#没找到人脸与姓名匹配的框
+			if draw_rect:
+				for rect in rcnn:
+					self.draw_rect_on_img(img,rect['box'],(255,0,0),2)
+					who = rect['face_descr']['name'] if 'face_descr' in rect.keys() else   ''
+					behavior = rect['title']
+					expression = rect['expression'] if 'expression' in rect.keys() else ''
+					#-----------------------行为框---------------------------------#
+					pt_x = rect['box'][0]
+					pt_y = rect['box'][1] - 5
+					pt = (pt_x,pt_y)
+					self.writeText(img,behavior,pt,cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2)
+					#-----------------------人脸框---------------------------------#
+					if who != '':
+						w_pt_x = rect['face_descr']['face_pos'][0]
+						w_pt_y = rect['face_descr']['face_pos'][1] - 3
+						w_pt = (w_pt_x,w_pt_y)
+						self.draw_rect_on_img(img,rect['face_descr']['face_pos'],(0,255,255),2)
+						self.writeText(img,who,w_pt,cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,255),2)
+					else:
+						pass
+					#-----------------------表情---------------------------------#
+					if expression != '':
+						if who != '':
+							e_pt_x = rect['face_descr']['face_pos'][0]
+							e_pt_y = rect['face_descr']['face_pos'][3]
+						else:
+							e_pt_x = rect['box'][0]
+							e_pt_y = rect['box'][3] - 15
+						e_pt = (e_pt_x,e_pt_y)
+						self.writeText(img,expression,e_pt,cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2)
+					else:
+						pass
+
+				cv2.imshow(img_name,img)
+				cv2.waitKey(0)
 
 	def read_img(self):#读取图片并获取其中的数据
 		originimg = cv2.imread(self.params['img'])#cv2读取图片
@@ -60,8 +107,26 @@ class save_bigHead_img(object):
 			os.mkdir(path + name)
 
 	def save_img(self,name,imgArr):#保存图片
-		cv2.imwrite( name,imgArr)
+		img = cv2.imwrite( name,imgArr)#图片的width  height为0/路径不存在会返回False  但是路径不存在不会报错
+		if not img:
+			print '路径不存在'
+		
+	def draw_rect_on_img(self,img,points,color,line):
+		pt1 = (points[0],points[1])
+		pt2 = (points[2],points[3])
+		cv2.rectangle(img,pt1,pt2,color,line)
 
+	def add_value(self,value):
+		pass
+
+	def writeText(self,img,txt,points,font,line,color,linebold):#who behavior expression
+		#pt = (points[0],points[1] - 5)
+		# name_len = ((len(who) * 12) + points[0],points[1] - 5)
+		# expression_len = (len(who) + len(expression) + points[0], points[1] - 5)
+		# print pt,name_len,expression_len
+		cv2.putText(img,txt,points,font,line,color,linebold,False)#人名
+		# cv2.putText(img,behavior,name_len,cv2.FONT_HERSHEY_SIMPLEX,1.5,(255,0,0),2,False)#行为
+		# cv2.putText(img,expression,expression_len,cv2.FONT_HERSHEY_SIMPLEX,1.5,(0,255,0),2,False)#表情
 
 if __name__ == '__main__':
 	a = save_bigHead_img({"img" : img, "json" : rcnn,"path" : path})
