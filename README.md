@@ -20,7 +20,6 @@
 	1.Python2.7.X
 	2.Opencv
 	3.pip install numpy
-	4.pip install copy
 
 # 4.其他说明:
 	1.使用时所传path必须要存在(每次传的path应该不一样,程序不做考虑,给路径就保存)
