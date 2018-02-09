@@ -2,12 +2,13 @@
 # @Author: wangfpp
 # @Date:   2018-02-05 20:20:48
 # @Last Modified by:   wangfpp
-# @Last Modified time: 2018-02-09 11:37:23
+# @Last Modified time: 2018-02-09 17:11:03
 import cv2
 import json
 import numpy as np
 import sys
 import os
+import copy
 
 #读取Terminal的输入参数
 img = sys.argv[1]
@@ -15,7 +16,7 @@ rcnn = sys.argv[2]
 path = sys.argv[3]
 
 #行为框的绘制开关
-draw_rect = False
+draw_rect = True
  
 class save_bigHead_img(object):
 	"""docstring for save_bighead_img"""
@@ -40,6 +41,8 @@ class save_bigHead_img(object):
 				self.face_map = []
 				for person in rcnn:#循环把人脸框 插入数组
 					if 'face_descr' in person.keys():
+						copy_arr = copy.deepcopy(person['face_descr']['face_pos'])
+						person['face_descr']['face_pos'] = self.expansion_value(copy_arr,5)
 						self.face_map.append(person['face_descr'])
 					else:
 						pass
@@ -61,10 +64,11 @@ class save_bigHead_img(object):
 					self.writeText(img,behavior,pt,cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2)
 					#-----------------------人脸框---------------------------------#
 					if who != '':
-						w_pt_x = rect['face_descr']['face_pos'][0]
-						w_pt_y = rect['face_descr']['face_pos'][1] - 3
+						arr = self.expansion_value(copy.deepcopy(rect['face_descr']['face_pos']),5)
+						w_pt_x = arr[0]
+						w_pt_y = arr[1] - 3
 						w_pt = (w_pt_x,w_pt_y)
-						self.draw_rect_on_img(img,rect['face_descr']['face_pos'],(0,255,255),2)
+						self.draw_rect_on_img(img,arr,(0,255,255),2)
 						self.writeText(img,who,w_pt,cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,255),2)
 					else:
 						pass
@@ -121,6 +125,14 @@ class save_bigHead_img(object):
 	def writeText(self,img,txt,points,font,line,color,linebold):#img 图片 txt文字 points=(x,y) font字体 line线型 color演示 linebold粗细
 		cv2.putText(img,txt,points,font,line,color,linebold,False)#人名
 
+	def expansion_value(self,arr,value):
+		for index,item in enumerate(arr):
+			if index == 0:
+				arr[index] -= value 
+			elif index == 2 or index == 3:
+				arr[index] +=   value
+			#print arr,arr[index]
+		return arr
 if __name__ == '__main__':
 	a = save_bigHead_img({"img" : img, "json" : rcnn,"path" : path})
 	a.read_json()
